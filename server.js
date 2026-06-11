@@ -320,6 +320,107 @@ app.delete('/api/history/:id', (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/api/dashboard/stats', (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  const datasets = readJsonFile(DATASETS_FILE);
+  const history = readJsonFile(HISTORY_FILE);
+
+  let filteredHistory = history;
+  if (startDate || endDate) {
+    filteredHistory = history.filter(h => {
+      const date = new Date(h.createdAt);
+      if (startDate && date < new Date(startDate)) return false;
+      if (endDate && date > new Date(endDate + 'T23:59:59')) return false;
+      return true;
+    });
+  }
+
+  const totalFits = filteredHistory.length;
+
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const todayFits = filteredHistory.filter(h => h.createdAt.startsWith(todayStr)).length;
+
+  const totalOutliers = filteredHistory.reduce((sum, h) => {
+    const outlierCount = h.outliers.filter(o => o.isOutlier).length;
+    return sum + outlierCount;
+  }, 0);
+  const totalPoints = filteredHistory.reduce((sum, h) => sum + h.points.length, 0);
+  const anomalyRatio = totalPoints > 0 ? (totalOutliers / totalPoints) * 100 : 0;
+
+  const modelUsage = {};
+  filteredHistory.forEach(h => {
+    modelUsage[h.modelType] = (modelUsage[h.modelType] || 0) + 1;
+  });
+
+  const datasetActivity = {};
+  filteredHistory.forEach(h => {
+    const name = h.datasetName;
+    if (!datasetActivity[name]) {
+      datasetActivity[name] = { count: 0, lastActive: null };
+    }
+    datasetActivity[name].count++;
+    const created = new Date(h.createdAt);
+    if (!datasetActivity[name].lastActive || created > new Date(datasetActivity[name].lastActive)) {
+      datasetActivity[name].lastActive = h.createdAt;
+    }
+  });
+  const recentlyActive = Object.entries(datasetActivity)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive))
+    .slice(0, 10);
+
+  const highRiskBatches = filteredHistory
+    .map(h => {
+      const outlierCount = h.outliers.filter(o => o.isOutlier).length;
+      const outlierRatio = h.points.length > 0 ? (outlierCount / h.points.length) * 100 : 0;
+      return {
+        id: h.id,
+        datasetName: h.datasetName,
+        modelType: h.modelType,
+        outlierCount,
+        outlierRatio,
+        rSquared: h.metrics.rSquared,
+        pointsCount: h.points.length,
+        createdAt: h.createdAt
+      };
+    })
+    .filter(h => h.outlierRatio > 10)
+    .sort((a, b) => b.outlierRatio - a.outlierRatio)
+    .slice(0, 10);
+
+  const fitTrend = [];
+  const dateMap = {};
+  filteredHistory.forEach(h => {
+    const date = h.createdAt.split('T')[0];
+    if (!dateMap[date]) {
+      dateMap[date] = { linear: 0, exponential: 0, quadratic: 0, total: 0 };
+    }
+    dateMap[date][h.modelType]++;
+    dateMap[date].total++;
+  });
+  const sortedDates = Object.keys(dateMap).sort();
+  sortedDates.forEach(date => {
+    fitTrend.push({ date, ...dateMap[date] });
+  });
+
+  res.json({
+    summary: {
+      totalDatasets: datasets.length,
+      totalFits,
+      todayFits,
+      anomalyRatio: parseFloat(anomalyRatio.toFixed(2)),
+      totalOutliers,
+      totalPoints
+    },
+    modelUsage,
+    recentlyActive,
+    highRiskBatches,
+    fitTrend
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`实验曲线拟合台 服务器已启动: http://localhost:${PORT}`);
 });

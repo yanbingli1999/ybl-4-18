@@ -591,6 +591,49 @@ function initEventListeners() {
   document.getElementById('saveDatasetBtn').addEventListener('click', saveCurrentDataset);
   document.getElementById('updateDatasetBtn').addEventListener('click', updateCurrentDataset);
   document.getElementById('datasetName').addEventListener('input', markDirty);
+  document.getElementById('dashboardBtn').addEventListener('click', () => {
+    window.location.href = 'dashboard.html';
+  });
+}
+
+function getUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    historyId: params.get('historyId'),
+    dataset: params.get('dataset')
+  };
+}
+
+function handleUrlParams() {
+  const params = getUrlParams();
+  if (params.historyId) {
+    loadHistoryItem(params.historyId);
+    switchToTab('history');
+  } else if (params.dataset) {
+    switchToTab('history');
+    highlightHistoryByDataset(params.dataset);
+  }
+}
+
+function switchToTab(tabName) {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tabName);
+  });
+  document.getElementById('tab-history').style.display = tabName === 'history' ? 'block' : 'none';
+  document.getElementById('tab-datasets').style.display = tabName === 'datasets' ? 'block' : 'none';
+}
+
+function highlightHistoryByDataset(datasetName) {
+  const historyList = document.getElementById('historyList');
+  const items = historyList.querySelectorAll('.history-item');
+  items.forEach(item => {
+    const title = item.querySelector('.history-title').textContent;
+    if (title === datasetName) {
+      item.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.5)';
+      item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
 }
 
 function init() {
@@ -598,8 +641,10 @@ function init() {
   initTabs();
   initEventListeners();
   clearDataTable();
-  loadHistory();
-  loadDatasets();
+  loadHistory().then(() => {
+    loadDatasets();
+    handleUrlParams();
+  });
   updateDatasetButtons();
 }
 

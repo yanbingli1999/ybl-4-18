@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>实验室运行看板 - 实验曲线拟合台</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <div class="header-left">
+        <h1>📊 实验室运行看板</h1>
+        <span class="header-subtitle">实时监控 · 数据汇总 · 异常预警</span>
+      </div>
+      <div class="header-controls">
+        <div class="date-filter">
+          <label>日期范围:</label>
+          <input type="date" id="startDate" value="">
+          <span class="date-separator">至</span>
+          <input type="date" id="endDate" value="">
+          <button id="applyFilterBtn" class="btn btn-primary">筛选</button>
+          <button id="resetFilterBtn" class="btn btn-secondary">重置</button>
+        </div>
+        <button id="refreshBtn" class="btn btn-info" title="刷新数据">🔄 刷新</button>
+        <button id="backBtn" class="btn btn-secondary">← 返回工作台</button>
+      </div>
+    </header>
+
+    <main class="dashboard-main">
+      <section class="stats-cards">
+        <div class="stat-card stat-primary">
+          <div class="stat-icon">📈</div>
+          <div class="stat-content">
+            <span class="stat-label">今日拟合次数</span>
+            <span class="stat-value" id="todayFits">0</span>
+            <span class="stat-trend up" id="todayFitsTrend">—</span>
+          </div>
+        </div>
+        <div class="stat-card stat-warning">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-content">
+            <span class="stat-label">异常点比例</span>
+            <span class="stat-value" id="anomalyRatio">0%</span>
+            <span class="stat-trend down" id="anomalyRatioTrend">—</span>
+          </div>
+        </div>
+        <div class="stat-card stat-success">
+          <div class="stat-icon">💾</div>
+          <div class="stat-content">
+            <span class="stat-label">本地数据集</span>
+            <span class="stat-value" id="totalDatasets">0</span>
+            <span class="stat-trend" id="totalDatasetsTrend">个数据集</span>
+          </div>
+        </div>
+        <div class="stat-card stat-info">
+          <div class="stat-icon">🔬</div>
+          <div class="stat-content">
+            <span class="stat-label">累计拟合次数</span>
+            <span class="stat-value" id="totalFits">0</span>
+            <span class="stat-trend" id="totalFitsTrend">总记录数</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="charts-grid">
+        <div class="chart-card large">
+          <div class="card-header">
+            <h2>📉 拟合趋势</h2>
+            <div class="card-actions">
+              <span class="card-badge" id="fitTrendBadge">近7天</span>
+            </div>
+          </div>
+          <div class="chart-body">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="card-header">
+            <h2>🎯 模型使用占比</h2>
+          </div>
+          <div class="chart-body">
+            <canvas id="modelChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="bottom-grid">
+        <div class="list-card">
+          <div class="card-header">
+            <h2>🔥 最近活跃数据集</h2>
+            <span class="card-count" id="activeDatasetsCount">0</span>
+          </div>
+          <div class="list-body">
+            <div id="recentlyActiveList" class="active-list">
+              <div class="empty-state">暂无活跃数据</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="list-card">
+          <div class="card-header">
+            <h2>🚨 高风险批次</h2>
+            <span class="card-count danger" id="highRiskCount">0</span>
+          </div>
+          <div class="list-body">
+            <div id="highRiskList" class="risk-list">
+              <div class="empty-state">暂无高风险批次</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="dashboard-footer">
+      <span>最后更新: <span id="lastUpdate">—</span></span>
+      <span class="footer-right">实验曲线拟合台 · 监控看板 v1.0</span>
+    </footer>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
