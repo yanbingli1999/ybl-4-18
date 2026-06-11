@@ -20,10 +20,10 @@ function ensureDataFiles() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(DATASETS_FILE)) {
-    fs.writeFileSync(DATASETS_FILE, JSON.stringify([], null, 2));
+    fs.writeFileSync(DATASETS_FILE, JSON.stringify([], null, 2), 'utf-8');
   }
   if (!fs.existsSync(HISTORY_FILE)) {
-    fs.writeFileSync(HISTORY_FILE, JSON.stringify([], null, 2));
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify([], null, 2), 'utf-8');
   }
 }
 ensureDataFiles();
@@ -38,7 +38,7 @@ function readJsonFile(filePath) {
 }
 
 function writeJsonFile(filePath, data) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 function generateId() {
@@ -326,9 +326,16 @@ app.get('/api/dashboard/stats', (req, res) => {
   const datasets = readJsonFile(DATASETS_FILE);
   const history = readJsonFile(HISTORY_FILE);
 
-  let filteredHistory = history;
+  const demoKeywords = ['示例', '演示', 'demo', 'test', '测试'];
+  let filteredHistory = history.filter(h => {
+    const name = (h.datasetName || '').toLowerCase();
+    const hasDatasetId = h.datasetId !== null;
+    const isDemo = demoKeywords.some(keyword => name.includes(keyword.toLowerCase()));
+    return hasDatasetId || !isDemo;
+  });
+
   if (startDate || endDate) {
-    filteredHistory = history.filter(h => {
+    filteredHistory = filteredHistory.filter(h => {
       const date = new Date(h.createdAt);
       if (startDate && date < new Date(startDate)) return false;
       if (endDate && date > new Date(endDate + 'T23:59:59')) return false;

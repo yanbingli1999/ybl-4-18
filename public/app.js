@@ -10,6 +10,12 @@ const modelTypeLabels = {
   quadratic: '二次曲线'
 };
 
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function showToast(message, type = 'info') {
   const toast = document.getElementById('toast');
   toast.className = `toast ${type} show`;
@@ -394,12 +400,17 @@ async function loadHistory() {
       return;
     }
 
-    historyList.innerHTML = history.map(h => `
+    historyList.innerHTML = history.map(h => {
+      const pointsCount = h.pointsCount || (h.points ? h.points.length : 0);
+      const rSquared = h.metrics && h.metrics.rSquared !== null && h.metrics.rSquared !== undefined 
+        ? h.metrics.rSquared.toFixed(4) 
+        : 'N/A';
+      return `
       <div class="history-item" data-id="${h.id}">
-        <div class="history-title">${h.datasetName}</div>
+        <div class="history-title">${escapeHtml(h.datasetName)}</div>
         <span class="history-model">${modelTypeLabels[h.modelType] || h.modelType}</span>
         <div class="history-meta">
-          <span>${h.pointsCount} 个点 · R²=${h.metrics.rSquared.toFixed(4)}</span>
+          <span>${pointsCount} 个点 · R²=${rSquared}</span>
           <span>${new Date(h.createdAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
         </div>
         <div class="history-actions">
@@ -407,7 +418,7 @@ async function loadHistory() {
           <button class="btn-delete" onclick="deleteHistoryItem('${h.id}')">删除</button>
         </div>
       </div>
-    `).join('');
+    `}).join('');
   } catch (err) {
     console.error('加载历史失败:', err);
   }
@@ -607,11 +618,13 @@ function getUrlParams() {
 function handleUrlParams() {
   const params = getUrlParams();
   if (params.historyId) {
-    loadHistoryItem(params.historyId);
     switchToTab('history');
+    loadHistoryItem(params.historyId);
   } else if (params.dataset) {
     switchToTab('history');
-    highlightHistoryByDataset(params.dataset);
+    setTimeout(() => {
+      highlightHistoryByDataset(params.dataset);
+    }, 100);
   }
 }
 
@@ -627,13 +640,22 @@ function switchToTab(tabName) {
 function highlightHistoryByDataset(datasetName) {
   const historyList = document.getElementById('historyList');
   const items = historyList.querySelectorAll('.history-item');
+  let found = false;
   items.forEach(item => {
-    const title = item.querySelector('.history-title').textContent;
+    const titleEl = item.querySelector('.history-title');
+    const title = titleEl ? titleEl.textContent.trim() : '';
+    item.style.boxShadow = '';
     if (title === datasetName) {
       item.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.5)';
-      item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (!found) {
+        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        found = true;
+      }
     }
   });
+  if (!found) {
+    showToast(`未找到数据集 "${datasetName}" 的历史记录`, 'info');
+  }
 }
 
 function init() {

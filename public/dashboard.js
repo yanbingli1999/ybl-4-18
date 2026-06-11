@@ -326,7 +326,7 @@ function updateRecentlyActive(activeList) {
   }
 
   container.innerHTML = activeList.map(item => `
-    <div class="active-item" onclick="searchHistoryByDataset('${escapeHtml(item.name)}')">
+    <div class="active-item" data-dataset="${escapeHtml(item.name)}">
       <div class="active-item-info">
         <div class="active-item-name">${escapeHtml(item.name)}</div>
         <div class="active-item-meta">
@@ -336,6 +336,13 @@ function updateRecentlyActive(activeList) {
       <span class="active-item-count">${item.count} 次</span>
     </div>
   `).join('');
+
+  container.querySelectorAll('.active-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const datasetName = el.dataset.dataset;
+      searchHistoryByDataset(datasetName);
+    });
+  });
 }
 
 function updateHighRiskBatches(riskList) {
@@ -349,7 +356,7 @@ function updateHighRiskBatches(riskList) {
   }
 
   container.innerHTML = riskList.map(item => `
-    <div class="risk-item" onclick="viewHistoryItem('${item.id}')">
+    <div class="risk-item" data-history-id="${item.id}">
       <div class="risk-item-info">
         <div class="risk-item-name">${escapeHtml(item.datasetName)}</div>
         <div class="risk-item-meta">
@@ -361,6 +368,13 @@ function updateHighRiskBatches(riskList) {
       <span class="risk-item-ratio">${item.outlierRatio.toFixed(1)}%</span>
     </div>
   `).join('');
+
+  container.querySelectorAll('.risk-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const historyId = el.dataset.historyId;
+      viewHistoryItem(historyId);
+    });
+  });
 }
 
 function escapeHtml(text) {
